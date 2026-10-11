@@ -1,0 +1,136 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  FARMER
+  DISTRIBUTOR
+  RETAILER
+  CONSUMER
+  ADMIN
+}
+
+enum QualityGrade {
+  GRADE_A
+  GRADE_B
+  GRADE_C
+  PREMIUM
+  EXPORT_QUALITY
+}
+
+enum BatchStatus {
+  HARVESTED
+  IN_TRANSIT
+  WITH_DISTRIBUTOR
+  IN_TRANSIT_TO_RETAILER
+  WITH_RETAILER
+  SOLD
+  RECALLED
+}
+
+enum EventType {
+  CREATION
+  QUALITY_INSPECTION
+  TRANSFER_OF_CUSTODY
+  PRICE_UPDATE
+  STORAGE_UPDATE
+  RECALL
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  name            String
+  role            Role           @default(CONSUMER)
+  walletAddress   String?        @unique
+  organization    String?
+  physicalAddress String?
+  phoneNumber     String?
+  isVerified      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  createdBatches  Batch[]        @relation("FarmerBatches")
+  recordedEvents  SupplyChainEvent[]
+
+  @@index([walletAddress])
+}
+
+model Batch {
+  id                 String             @id @default(uuid())
+  blockchainBatchId  Int?               @unique
+  productName        String
+  category           String
+  description        String?
+  originLocation     String
+  farmName           String
+  farmLatitude       Float?
+  farmLongitude      Float?
+  quantity           Float
+  unit               String             @default("kg")
+  qualityGrade       QualityGrade       @default(GRADE_A)
+  harvestDate        DateTime
+  expiryDate         DateTime?
+  images             String             @default("[]")
+  qrCodeUrl          String?
+  status             BatchStatus        @default(HARVESTED)
+  
+  farmerId           String
+  farmer             User               @relation("FarmerBatches", fields: [farmerId], references: [id])
+  farmerWallet       String
+  currentOwnerWallet String
+
+  creationTxHash     String?
+  blockNumber        Int?
+  isSyncWithChain    Boolean            @default(false)
+
+  events             SupplyChainEvent[]
+  scanLogs           ScanLog[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([blockchainBatchId])
+  @@index([farmerWallet])
+  @@index([currentOwnerWallet])
+}
+
+model SupplyChainEvent {
+  id              String       @id @default(uuid())
+  batchId         String
+  batch           Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  eventType       EventType
+  fromAddress     String
+  toAddress       String
+  pricePerUnit    Float
+  currency        String       @default("USD")
+  location        String
+  notes           String?
+  temperatureC    Float?
+  humidityPercent Float?
+  txHash          String?
+  actorId         String?
+  actor           User?        @relation(fields: [actorId], references: [id])
+  timestamp       DateTime     @default(now())
+
+  @@index([batchId])
+  @@index([txHash])
+}
+
+model ScanLog {
+  id          String   @id @default(uuid())
+  batchId     String
+  batch       Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  scannedAt   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
+  city        String?
+  country     String?
+
+  @@index([batchId])
+}

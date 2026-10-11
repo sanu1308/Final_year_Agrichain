@@ -1,0 +1,30 @@
+{
+  "name": "agrichain-backend",
+  "version": "1.0.0",
+  "description": "AgriChain Backend API with Express, Mongoose, MongoDB, JWT, and Web3 integration",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "node -e \"console.log('Build completed')\"",
+    "seed": "node scripts/seed-mongodb.js",
+    "db:verify": "node scripts/verify-mongodb-system.js",
+    "test:api": "node scripts/test-api-endpoints.js",
+    "test:shelf-tag": "node scripts/test-shelf-tag-price.js",
+    "test:security": "node scripts/test-strict-blockchain-flow.js",
+    "test:wallet-binding": "node scripts/test-wallet-binding.js",
+    "test:multi-role": "node scripts/test-multi-role-wallets.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.1",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.10.0",
+    "qrcode": "^1.5.3",
+    "zod": "^3.23.8"
+  }
+}

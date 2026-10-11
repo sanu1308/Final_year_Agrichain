@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+contracts/.env
+
+# Build outputs
+dist/
+build/
+contracts/artifacts/
+contracts/cache/
+frontend/dist/
+*.db
+*.sqlite
+backend/prisma/dev.db
+
+# Archive files
+*.zip
+*.tar.gz
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE and backup
+.vscode/
+.idea/
+*.bak
+backup/

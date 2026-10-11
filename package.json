@@ -1,0 +1,29 @@
+{
+  "name": "agrichain-project",
+  "version": "1.0.0",
+  "description": "AgriChain - Blockchain-Based Supply Chain Transparency for Agricultural Produce (Problem Statement #25045)",
+  "scripts": {
+    "node": "cd contracts && npm run node",
+    "compile": "cd contracts && npm run compile",
+    "test:contracts": "cd contracts && npm test",
+    "deploy:local": "cd contracts && npm run deploy:local",
+    "deploy:hardhat": "cd contracts && npm run deploy:hardhat",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:seed": "cd backend && npm run prisma:seed",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "blockchain",
+    "supply-chain",
+    "agriculture",
+    "solidity",
+    "ethereum",
+    "hardhat",
+    "express",
+    "react",
+    "prisma"
+  ],
+  "author": "AgriChain Hackathon Team",
+  "license": "MIT"
+}
