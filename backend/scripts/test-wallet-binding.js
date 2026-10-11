@@ -395,7 +395,7 @@ try {
 
   // Check on-chain owner
   const onChainBatchData = await contractFarmerA.getBatch(onChainBatchId);
-  assert.strictEqual(onChainBatchData.currentOwner.toLowerCase(), walletA, 'On-chain owner must equal Farmer A wallet');
+  assert.strictEqual(ethers.getAddress(onChainBatchData.currentOwner), walletA, 'On-chain owner must equal Farmer A wallet');
   console.log(`   ✔ Batch #${onChainBatchId} created. On-chain owner verified as Farmer A (${walletA})`);
 
   // --------------------------------------------------------------------------
@@ -429,7 +429,7 @@ try {
 
   // Check on-chain ownership transferred to Distributor A
   const afterDistBatch = await contractDistributorA.getBatch(onChainBatchId);
-  assert.strictEqual(afterDistBatch.currentOwner.toLowerCase(), walletC, 'Owner must now be Distributor A');
+  assert.strictEqual(ethers.getAddress(afterDistBatch.currentOwner), walletC, 'Owner must now be Distributor A');
   console.log(`   ✔ On-chain ownership successfully transferred to Distributor A (${walletC})`);
 
   // --------------------------------------------------------------------------
@@ -442,7 +442,21 @@ try {
     225n,
     'Wholesale markup applied'
   );
-  await txMarkup.wait(1);
+  const rcMarkup = await txMarkup.wait(1);
+  assert.strictEqual(rcMarkup.status, 1);
+
+  const markupRes = await apiRequest(`/batches/${dbBatchId}/transfer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${tokenDistA}` },
+    body: {
+      pricePerUnit: 2.25,
+      newStatus: 'IN_TRANSIT',
+      location: 'Ratnagiri, Maharashtra',
+      notes: 'Wholesale markup applied',
+      txHash: rcMarkup.hash,
+    },
+  });
+  assert.strictEqual(markupRes.status, 200);
 
   // Retailer A accepts purchase at $2.25
   const txRetailAccept = await contractRetailerA.acceptPurchase(
@@ -470,7 +484,7 @@ try {
   assert.strictEqual(retailCustodyRes.status, 200);
 
   const afterRetailBatch = await contractRetailerA.getBatch(onChainBatchId);
-  assert.strictEqual(afterRetailBatch.currentOwner.toLowerCase(), walletD, 'Owner must now be Retailer A');
+  assert.strictEqual(ethers.getAddress(afterRetailBatch.currentOwner), walletD, 'Owner must now be Retailer A');
   console.log(`   ✔ On-chain ownership successfully transferred to Retailer A (${walletD})`);
 
   // --------------------------------------------------------------------------
@@ -485,9 +499,23 @@ try {
   const rcShelfPrice = await txShelfPrice.wait(1);
   assert.strictEqual(rcShelfPrice.status, 1);
 
+  // Sync price update with DB
+  const priceUpdateRes = await apiRequest(`/batches/${dbBatchId}/transfer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${tokenRetailA}` },
+    body: {
+      pricePerUnit: 3.20,
+      newStatus: 'WITH_RETAILER',
+      location: 'Ratnagiri, Maharashtra',
+      notes: 'Official consumer shelf price set',
+      txHash: rcShelfPrice.hash,
+    },
+  });
+  assert.strictEqual(priceUpdateRes.status, 200);
+
   const afterPriceBatch = await contractRetailerA.getBatch(onChainBatchId);
   assert.strictEqual(Number(afterPriceBatch.currentPrice), 320);
-  assert.strictEqual(afterPriceBatch.currentOwner.toLowerCase(), walletD, 'Ownership must remain Retailer A');
+  assert.strictEqual(ethers.getAddress(afterPriceBatch.currentOwner), walletD, 'Ownership must remain Retailer A');
   console.log(`   ✔ Shelf price updated to $3.20. On-chain owner remains Retailer A (${walletD})`);
 
   // --------------------------------------------------------------------------
@@ -538,7 +566,6 @@ try {
   assert.strictEqual(regConsumer.status, 201);
   assert.strictEqual(regConsumer.data.user.walletAddress, null);
 
-  // Public verify endpoint works with zero wallet and zero authentication
   const publicVerify = await apiRequest(`/public/verify/${onChainBatchId}`);
   assert.strictEqual(publicVerify.status, 200, 'Public verify works without wallet');
   assert.strictEqual(publicVerify.data.integrityStatus, 'VERIFIED');

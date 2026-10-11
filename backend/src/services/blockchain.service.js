@@ -158,7 +158,7 @@ export class BlockchainService {
         }
       }
 
-      return { verified: false };
+      return { verified: false, from: receipt?.from };
     } catch (err) {
       console.error('Error verifying batch transaction:', err.message);
       return { verified: false };

@@ -450,14 +450,40 @@ try {
     280n, // $2.80
     'Cold chain handling applied'
   );
-  await txPrice1.wait(1);
+  const rcPrice1 = await txPrice1.wait(1);
+  assert.strictEqual(rcPrice1.status, 1);
+  const syncPrice1 = await apiRequest(`/batches/${dbBatch1Id}/transfer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${tokenDistA}` },
+    body: {
+      pricePerUnit: 2.8,
+      newStatus: 'WITH_DISTRIBUTOR',
+      location: 'Ratnagiri, Maharashtra',
+      notes: 'Cold chain handling applied',
+      txHash: rcPrice1.hash,
+    },
+  });
+  assert.strictEqual(syncPrice1.status, 200);
 
   const txPrice2 = await contractDistributorB.updateSellingPrice(
     BigInt(batch2OnChainId),
     450n, // $4.50
     'Fast transit markup applied'
   );
-  await txPrice2.wait(1);
+  const rcPrice2 = await txPrice2.wait(1);
+  assert.strictEqual(rcPrice2.status, 1);
+  const syncPrice2 = await apiRequest(`/batches/${dbBatch2Id}/transfer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${tokenDistB}` },
+    body: {
+      pricePerUnit: 4.5,
+      newStatus: 'WITH_DISTRIBUTOR',
+      location: 'Mahabaleshwar, Maharashtra',
+      notes: 'Fast transit markup applied',
+      txHash: rcPrice2.hash,
+    },
+  });
+  assert.strictEqual(syncPrice2.status, 200);
   console.log('   ✔ Both distributors updated their offered selling prices on-chain');
 
   // --------------------------------------------------------------------------
@@ -557,11 +583,11 @@ try {
 
   assert.strictEqual(ethers.getAddress(history1[0].to), walletFarmerA);
   assert.strictEqual(ethers.getAddress(history1[1].to), walletDistributorA);
-  assert.strictEqual(ethers.getAddress(history1[2].to), walletRetailerA);
+  assert.strictEqual(ethers.getAddress(history1[history1.length - 1].to), walletRetailerA);
 
   assert.strictEqual(ethers.getAddress(history2[0].to), walletFarmerB);
   assert.strictEqual(ethers.getAddress(history2[1].to), walletDistributorB);
-  assert.strictEqual(ethers.getAddress(history2[2].to), walletRetailerB);
+  assert.strictEqual(ethers.getAddress(history2[history2.length - 1].to), walletRetailerB);
 
   // --------------------------------------------------------------------------
   // TEST I: Existing QR / consumer verification continues to work without wallet

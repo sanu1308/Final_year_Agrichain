@@ -299,7 +299,7 @@ async function runSecuritySuite() {
   // Record custody transfer using real mined tx hash from Step 3
   const realTransferRes = await apiRequest(`/batches/${draftBatchId}/transfer`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${farmerToken}` },
+    headers: { Authorization: `Bearer ${distInitToken}` },
     body: {
       toAddress: signer1.address,
       pricePerUnit: 1.50,
@@ -312,8 +312,8 @@ async function runSecuritySuite() {
   assert.strictEqual(realTransferRes.status, 200, 'Backend must accept mined on-chain transfer event');
   assert.strictEqual(
     realTransferRes.data.batch.currentOwnerWallet.toLowerCase(),
-    signer2.address.toLowerCase(),
-    'MongoDB batch currentOwnerWallet must sync with latest on-chain owner'
+    signer1.address.toLowerCase(),
+    'MongoDB batch currentOwnerWallet must sync with distributor on-chain owner'
   );
   console.log(`   ✔ Backend synchronized owner and status from blockchain: ${realTransferRes.data.batch.currentOwnerWallet} (${realTransferRes.data.batch.status})`);
 

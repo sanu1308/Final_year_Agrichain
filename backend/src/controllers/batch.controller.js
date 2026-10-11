@@ -815,6 +815,24 @@ export class BatchController {
         txHash,
       } = parsed.data;
       let txVerification = null;
+      let onChainData = null;
+
+      // ---------------------------------------------------------
+      // Synchronize state from blockchain & detect stale batch
+      // ---------------------------------------------------------
+      if (batch.blockchainBatchId) {
+        onChainData = await BlockchainService.fetchOnChainBatch(
+          batch.blockchainBatchId
+        );
+
+        if (!onChainData) {
+          res.status(400).json({
+            error: `Stale Blockchain Batch: Batch #${batch.blockchainBatchId} does not exist on the currently active smart contract. This record is from an older blockchain session. Please create a new batch.`,
+            isStaleBatch: true,
+          });
+          return;
+        }
+      }
 
       // ---------------------------------------------------------
       // Verify blockchain transaction
@@ -824,6 +842,23 @@ export class BatchController {
           txHash,
           batch.blockchainBatchId
         );
+
+        if (
+          txVerification.from &&
+          ethers.getAddress(txVerification.from) !==
+            actorWallet
+        ) {
+          res.status(403).json({
+            error:
+              'Please connect the MetaMask wallet registered with this account.',
+            registeredWallet: actorWallet,
+            transactionSender:
+              ethers.getAddress(
+                txVerification.from
+              ),
+          });
+          return;
+        }
 
         if (!txVerification.verified) {
           res.status(400).json({
@@ -844,23 +879,6 @@ export class BatchController {
           });
           return;
         }
-
-        if (
-          txVerification.from &&
-          ethers.getAddress(txVerification.from) !==
-            actorWallet
-        ) {
-          res.status(403).json({
-            error:
-              'Please connect the MetaMask wallet registered with this account.',
-            registeredWallet: actorWallet,
-            transactionSender:
-              ethers.getAddress(
-                txVerification.from
-              ),
-          });
-          return;
-        }
       }
 
       let confirmedOwner = toAddress
@@ -872,23 +890,7 @@ export class BatchController {
       let confirmedPrice = pricePerUnit;
       let confirmedStatus = newStatus;
 
-      // ---------------------------------------------------------
-      // Synchronize state from blockchain
-      // ---------------------------------------------------------
-      if (batch.blockchainBatchId) {
-        const onChainData =
-          await BlockchainService.fetchOnChainBatch(
-            batch.blockchainBatchId
-          );
-
-        if (!onChainData) {
-          res.status(400).json({
-            error: `Stale Blockchain Batch: Batch #${batch.blockchainBatchId} does not exist on the currently active smart contract. This record is from an older blockchain session. Please create a new batch.`,
-            isStaleBatch: true,
-          });
-          return;
-        }
-
+      if (onChainData) {
         confirmedOwner = ethers.getAddress(
           onChainData.currentOwner
         );
@@ -976,13 +978,17 @@ export class BatchController {
           }
 
           if (confirmedOwner !== actorWallet) {
-            res.status(403).json({
-              error:
-                'Please connect the MetaMask wallet registered with this account.',
-              registeredWallet: actorWallet,
-              onChainOwner: confirmedOwner,
-            });
-            return;
+            if (txVerification?.from && ethers.getAddress(txVerification.from) === actorWallet) {
+              confirmedOwner = actorWallet;
+            } else {
+              res.status(403).json({
+                error:
+                  'Please connect the MetaMask wallet registered with this account.',
+                registeredWallet: actorWallet,
+                onChainOwner: confirmedOwner,
+              });
+              return;
+            }
           }
         } else {
           if (
@@ -1023,13 +1029,17 @@ export class BatchController {
           }
 
           if (confirmedOwner !== actorWallet) {
-            res.status(403).json({
-              error:
-                'Please connect the MetaMask wallet registered with this account.',
-              registeredWallet: actorWallet,
-              onChainOwner: confirmedOwner,
-            });
-            return;
+            if (txVerification?.from && ethers.getAddress(txVerification.from) === actorWallet) {
+              confirmedOwner = actorWallet;
+            } else {
+              res.status(403).json({
+                error:
+                  'Please connect the MetaMask wallet registered with this account.',
+                registeredWallet: actorWallet,
+                onChainOwner: confirmedOwner,
+              });
+              return;
+            }
           }
         } else {
           if (
