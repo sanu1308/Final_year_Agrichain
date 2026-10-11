@@ -14,7 +14,7 @@ import {
 
 export const Navbar = () => {
   const { user, logout, updateUserWallet } = useAuth();
-  const { account, connectWallet, isConnecting } = useWeb3();
+  const { account, connectWallet, isConnecting, chainId, targetChainId, isWrongNetwork, switchNetwork } = useWeb3();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -85,6 +85,16 @@ export const Navbar = () => {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center space-x-3">
+            {isWrongNetwork && (
+              <button
+                onClick={switchNetwork}
+                className="px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg flex items-center gap-1.5 transition animate-pulse"
+                title={`Connected to chain ${chainId}. Click to switch to target chain ${targetChainId}`}
+              >
+                <span>Switch to {targetChainId === 11155111 ? 'Sepolia' : `Chain ${targetChainId}`}</span>
+              </button>
+            )}
+
             {/* Scan QR Button */}
             <button
               onClick={() => setIsScannerOpen(true)}

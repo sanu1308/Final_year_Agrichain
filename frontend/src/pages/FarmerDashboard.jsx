@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Wallet,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 
 export const FarmerDashboard = () => {
@@ -231,44 +232,63 @@ export const FarmerDashboard = () => {
       let onChainBatchId = null;
 
       // =========================================
-      // Parse BatchCreated event
+      // Parse BatchCreated event (named or positional index)
       // =========================================
-
       for (const log of receipt.logs) {
         try {
           const parsed = contract.interface.parseLog(log);
-
           if (parsed && parsed.name === 'BatchCreated') {
-            onChainBatchId = Number(parsed.args.batchId);
-            break;
+            const rawId = parsed.args?.batchId ?? parsed.args?.[0];
+            if (rawId !== undefined && rawId !== null) {
+              onChainBatchId = Number(rawId);
+              break;
+            }
           }
         } catch (e) {
           // Ignore logs that are not BatchCreated
         }
       }
 
+      // Robust On-Chain Counter Fallback:
+      // If event parsing was skipped by RPC filter quirks, query contract directly
+      if (!onChainBatchId) {
+        try {
+          const totalBatches = await contract.getTotalBatches();
+          if (totalBatches > 0n) {
+            const latestBatch = await contract.getBatch(totalBatches);
+            if (
+              latestBatch &&
+              latestBatch.exists &&
+              latestBatch.farmer.toLowerCase() === activeWallet.toLowerCase()
+            ) {
+              onChainBatchId = Number(totalBatches);
+              console.log('Retrieved confirmed batchId via contract fallback:', onChainBatchId);
+            }
+          }
+        } catch (fallbackErr) {
+          console.warn('Fallback on-chain batch lookup failed:', fallbackErr);
+        }
+      }
+
       if (!onChainBatchId) {
         throw new Error(
-          'Failed to retrieve confirmed onChainBatchId from mined on-chain event log.'
+          'Failed to retrieve confirmed onChainBatchId from mined on-chain transaction.'
         );
       }
 
       // =========================================
       // 3. Confirm Backend
       // =========================================
-
-      setTxStep(
-        'Step 3/3: Generating cryptographic QR code...'
-      );
+      setTxStep('Step 3/3: Generating cryptographic QR code...');
 
       const confirmRes = await apiRequest(
         `/batches/${dbBatchId}/confirm`,
         {
           method: 'PUT',
-
           body: JSON.stringify({
             blockchainBatchId: onChainBatchId,
             creationTxHash: txHash,
+            blockNumber: receipt.blockNumber,
           }),
         }
       );
@@ -284,50 +304,43 @@ export const FarmerDashboard = () => {
 
       // Open QR modal immediately
       setActiveQRModal(confirmRes.batch);
-    
-} catch (err) {
-  console.error('Create batch error:', err);
+    } catch (err) {
+      console.error('Create batch error:', err);
 
-  const userRejected =
-    err?.code === 4001 ||
-    err?.info?.error?.code === 4001 ||
-    err?.cause?.code === 4001;
+      const userRejected =
+        err?.code === 4001 ||
+        err?.info?.error?.code === 4001 ||
+        err?.cause?.code === 4001 ||
+        err?.code === 'ACTION_REJECTED';
 
-  const confirmedRevert = err?.confirmedRevert === true;
+      // Clean up the unconfirmed database draft whenever the blockchain transaction failed to confirm
+      if (dbBatchId && !transactionConfirmed) {
+        try {
+          await apiRequest(`/batches/${dbBatchId}/failed-draft`, { method: 'DELETE' });
+          await fetchBatches();
+        } catch (cleanupError) {
+          console.warn('Cleaned up draft or draft already removed:', cleanupError.message);
+        }
+      }
 
-  // Delete only when the wallet explicitly rejected the transaction,
-  // or a mined receipt confirms that the transaction reverted.
-  // Never delete after a transaction may have succeeded.
-  const canSafelyDeleteDraft =
-    Boolean(dbBatchId) &&
-    !transactionConfirmed &&
-    (userRejected || confirmedRevert);
-
-  if (canSafelyDeleteDraft) {
-    try {
-      await apiRequest(
-        `/batches/${dbBatchId}/failed-draft`,
-        { method: 'DELETE' }
+      setError(
+        userRejected
+          ? 'MetaMask transaction was cancelled. The unconfirmed draft was removed.'
+          : err.message || 'Failed to create produce batch'
       );
-
-      await fetchBatches();
-    } catch (cleanupError) {
-      console.error(
-        'Failed to clean up rejected transaction draft:',
-        cleanupError
-      );
-    }
-  }
-
-  setError(
-    userRejected
-      ? 'MetaMask transaction was rejected. The unconfirmed draft was cleaned up if it was safe to delete.'
-      : err.message || 'Failed to create produce batch'
-  );
-} finally {
-
+    } finally {
       setSubmitting(false);
       setTxStep(null);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId) => {
+    if (!window.confirm('Are you sure you want to discard this unconfirmed batch draft?')) return;
+    try {
+      await apiRequest(`/batches/${draftId}/failed-draft`, { method: 'DELETE' });
+      await fetchBatches();
+    } catch (err) {
+      alert(err.message || 'Failed to delete draft');
     }
   };
 
@@ -639,6 +652,16 @@ export const FarmerDashboard = () => {
                             title="View & Print QR Code"
                           >
                             <QrCode className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {!batch.blockchainBatchId && !batch.isSyncWithChain && (
+                          <button
+                            onClick={() => handleDeleteDraft(batch.id)}
+                            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition inline-flex items-center"
+                            title="Discard Unconfirmed Draft"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
 

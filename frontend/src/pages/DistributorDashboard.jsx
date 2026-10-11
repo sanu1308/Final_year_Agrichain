@@ -99,8 +99,11 @@ export const DistributorDashboard = () => {
   };
 
   const isAvailableToPurchase = (batch) => {
-    if (!batch.blockchainBatchId) return false;
+    if (!batch.blockchainBatchId || batch.isSyncWithChain === false) return false;
     if (isOwnedByMe(batch)) return false;
+    const remQty = batch.remainingQuantity ?? batch.quantity;
+    if (remQty <= 0) return false;
+    if (batch.status === 'SOLD' || batch.status === 'RECALLED') return false;
     return batch.status === 'HARVESTED';
   };
 

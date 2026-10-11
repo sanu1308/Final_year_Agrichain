@@ -377,8 +377,12 @@ export class AuthController {
           return;
         }
 
-        // Different wallet:
-        // Continue below and replace the old wallet.
+        // Different wallet: prevent silent overwrite of bound identity
+        res.status(400).json({
+          error:
+            'Wallet binding cannot be changed. Please switch MetaMask to your registered wallet.',
+        });
+        return;
       }
 
       /*

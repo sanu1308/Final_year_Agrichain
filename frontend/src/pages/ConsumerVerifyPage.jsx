@@ -171,7 +171,7 @@ export const ConsumerVerifyPage = () => {
               EVM Smart Contract: {contractAddress || 'Contract address unavailable'}
             </div>
             <div className="text-[10px] text-slate-400 mt-1">
-              Network: {chainId === 31337 ? 'Hardhat Localhost' : `Chain ID ${chainId || 'Unavailable'}`}
+              Network: {chainId === 11155111 ? 'Ethereum Sepolia Testnet' : chainId === 31337 ? 'Hardhat Localhost' : `Chain ID ${chainId || 'Sepolia / Localhost'}`}
             </div>
           </div>
         </div>
@@ -215,9 +215,11 @@ export const ConsumerVerifyPage = () => {
               Network
             </span>
             <p className="mt-1 font-bold text-slate-900">
-              {chainId === 31337
-                ? 'Hardhat Localhost'
-                : `Chain ID ${chainId || 'Unavailable'}`}
+              {chainId === 11155111
+                ? 'Ethereum Sepolia Testnet (Chain ID 11155111)'
+                : chainId === 31337
+                  ? 'Hardhat Localhost (Chain ID 31337)'
+                  : `EVM Network (${chainId || 'Unavailable'})`}
             </p>
           </div>
 

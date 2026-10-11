@@ -46,7 +46,12 @@ export const RegisterPage = () => {
       else if (user.role === 'ADMIN') navigate('/admin');
       else navigate('/verify/1');
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      const msg = err.message || 'Registration failed';
+      if (msg.includes('already linked to another account')) {
+        setError('The connected MetaMask wallet is already registered to another account. You can switch accounts in MetaMask, or uncheck "Bind this MetaMask wallet" below to complete registration now and link a different wallet later.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

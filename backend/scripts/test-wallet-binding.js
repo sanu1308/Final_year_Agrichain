@@ -33,11 +33,11 @@ const signerDistributorA = new ethers.Wallet('0x59c6995e998f97a5a0044966f0945389
 const signerRetailerA = new ethers.Wallet('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', provider);
 const signerDistributorB = new ethers.Wallet('0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba', provider);
 
-const walletA = signerFarmerA.address.toLowerCase();
-const walletB = signerFarmerB.address.toLowerCase();
-const walletC = signerDistributorA.address.toLowerCase();
-const walletD = signerRetailerA.address.toLowerCase();
-const walletE = signerDistributorB.address.toLowerCase();
+const walletA = ethers.getAddress(signerFarmerA.address);
+const walletB = ethers.getAddress(signerFarmerB.address);
+const walletC = ethers.getAddress(signerDistributorA.address);
+const walletD = ethers.getAddress(signerRetailerA.address);
+const walletE = ethers.getAddress(signerDistributorB.address);
 
 const contractAddress = contractData.address;
 const contractFarmerA = new ethers.Contract(contractAddress, contractData.abi, signerFarmerA);

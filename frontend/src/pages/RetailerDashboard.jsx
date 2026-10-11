@@ -124,8 +124,11 @@ export const RetailerDashboard = () => {
   };
 
   const isAvailableToPurchase = (batch) => {
-    if (!batch.blockchainBatchId) return false;
+    if (!batch.blockchainBatchId || batch.isSyncWithChain === false) return false;
     if (isOwnedByMe(batch)) return false;
+    const remQty = batch.remainingQuantity ?? batch.quantity;
+    if (remQty <= 0) return false;
+    if (batch.status === 'SOLD' || batch.status === 'RECALLED') return false;
     // Available from distributor if status is WITH_DISTRIBUTOR or IN_TRANSIT or IN_TRANSIT_TO_RETAILER
     return (
       batch.status === 'WITH_DISTRIBUTOR' ||

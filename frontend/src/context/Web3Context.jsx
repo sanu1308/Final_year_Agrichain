@@ -7,6 +7,7 @@ import React, {
 
 import { ethers } from 'ethers';
 import contractData from '../contractData.json';
+import { apiRequest } from '../config/api';
 
 const Web3Context = createContext(undefined);
 
@@ -96,52 +97,17 @@ export const Web3Provider = ({ children }) => {
    */
   async function fundDevelopmentWallet(walletAddress) {
     try {
-      const apiBaseUrl =
-        import.meta.env.VITE_API_URL ||
-        `http://${window.location.hostname}:5000`;
+      const data = await apiRequest('/dev/faucet', {
+        method: 'POST',
+        body: JSON.stringify({ walletAddress }),
+      });
 
-      const response = await fetch(
-        `${apiBaseUrl}/api/v1/dev/faucet`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            walletAddress,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        console.warn(
-          'Development faucet:',
-          data.error || 'Funding failed'
-        );
-
-        return null;
+      if (data && data.funded) {
+        console.log(`Development faucet funded ${walletAddress} with ${data.amountSent} ETH. Tx: ${data.transactionHash}`);
       }
-
-      console.log(
-        'Development faucet:',
-        data.message
-      );
-
-      if (data.funded) {
-        console.log(
-          `Wallet funded with ${data.amountSent} ETH. Tx: ${data.transactionHash}`
-        );
-      }
-
       return data;
     } catch (err) {
-      console.warn(
-        'Development faucet request failed:',
-        err
-      );
-
+      console.warn('Development faucet skipped/failed:', err.message);
       return null;
     }
   }
@@ -372,14 +338,24 @@ export const Web3Provider = ({ children }) => {
     const targetChainIdHex =
       `0x${targetChainId.toString(16)}`;
 
+    const isSepolia = targetChainId === 11155111;
     const targetRpcUrl =
       import.meta.env.VITE_RPC_URL ||
-      'http://127.0.0.1:8545';
+      (isSepolia ? 'https://rpc.sepolia.org' : 'http://127.0.0.1:8545');
 
-    const networkName =
-      targetChainId === 31337
+    const networkName = isSepolia
+      ? 'Sepolia Testnet (AgriChain)'
+      : targetChainId === 31337
         ? 'Hardhat Localhost (AgriChain)'
         : `AgriChain Network (${targetChainId})`;
+
+    const nativeCurrency = isSepolia
+      ? { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 }
+      : { name: 'Ethereum', symbol: 'ETH', decimals: 18 };
+
+    const blockExplorerUrls = isSepolia
+      ? ['https://sepolia.etherscan.io']
+      : [];
 
     try {
       await window.ethereum.request({
@@ -397,21 +373,20 @@ export const Web3Provider = ({ children }) => {
        */
       if (switchError.code === 4902) {
         try {
+          const chainParams = {
+            chainId: targetChainIdHex,
+            chainName: networkName,
+            rpcUrls: [targetRpcUrl],
+            nativeCurrency,
+          };
+          if (blockExplorerUrls.length > 0) {
+            chainParams.blockExplorerUrls = blockExplorerUrls;
+          }
+
           await window.ethereum.request({
             method:
               'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: targetChainIdHex,
-                chainName: networkName,
-                rpcUrls: [targetRpcUrl],
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18,
-                },
-              },
-            ],
+            params: [chainParams],
           });
         } catch (addError) {
           console.error(
@@ -428,11 +403,18 @@ export const Web3Provider = ({ children }) => {
     }
   };
 
+  const targetChainId = import.meta.env.VITE_CHAIN_ID
+    ? parseInt(import.meta.env.VITE_CHAIN_ID, 10)
+    : contractData.chainId || 31337;
+  const isWrongNetwork = Boolean(account && chainId && chainId !== targetChainId);
+
   return (
     <Web3Context.Provider
       value={{
         account,
         chainId,
+        targetChainId,
+        isWrongNetwork,
         provider,
         signer,
         contract,
