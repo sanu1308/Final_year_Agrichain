@@ -1,7 +1,7 @@
 {
-  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "network": "localhost",
-  "chainId": 31337,
+  "address": "0x885F3caB2121FC22C99a7e70a206b758619542B9",
+  "network": "sepolia",
+  "chainId": 11155111,
   "abi": [
     {
       "inputs": [],
@@ -883,5 +883,5 @@
       "type": "function"
     }
   ],
-  "deployedAt": "2026-10-11T19:21:59.100Z"
+  "deployedAt": "2026-10-13T13:44:16.213Z"
 }
