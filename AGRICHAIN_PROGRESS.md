@@ -143,17 +143,28 @@ The application is completely repaired, tested, and ready. Before deploying to p
      ```
    * *Safety Note:* Ensure the wallet has at least ~0.05 Sepolia test ETH (obtainable from [sepoliafaucet.com](https://sepoliafaucet.com) or [Google Cloud Web3 Faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia)).
 
-2. **Deploy Contract to Sepolia (Requires Your Approval):**
-   * Run command:
-     ```bash
-     cd contracts
-     npm run deploy:sepolia
-     ```
-   * This will automatically compile, deploy to Sepolia, and sync the deployed contract address and ABI across `shared/`, `backend/`, and `frontend/`.
-   * Run verification:
-     ```bash
-     npx hardhat run scripts/verify-deployment.js --network sepolia
-     ```
+ 2. **Sepolia Contract Live Status:**
+    * Contract deployed at: `0x885F3caB2121FC22C99a7e70a206b758619542B9`
+    * Network: Ethereum Sepolia (Chain ID: `11155111`)
+    * Contract verified on-chain: 24,888 bytes bytecode, 0 errors.
+
+### Batch 8: Resolution of MetaMask `redeemDelegations` & Network Synchronization
+* **Root Cause:**
+  * MetaMask v12+ on Chromium/Edge enables an experimental "Smart Transactions" / Smart Account delegation feature (ERC-7710 / EIP-7702). When active, MetaMask wraps normal `eth_sendTransaction` calls inside a relayer/delegation manager invoking `redeemDelegations(delegations, modes, executions)` with bloated gas estimates.
+* **Fixes Implemented:**
+  1. **Frontend (`FarmerDashboard.jsx`, `DistributorDashboard.jsx`, `RetailerDashboard.jsx`):**
+     * Implemented pre-flight gas estimation with explicit bounded gasLimit overrides (`gasLimit: 700000n` max).
+     * Added detection and error guidance for delegation wrappers.
+  2. **Backend Web3 Provider (`backend/src/lib/web3.js` & `backend/.env`):**
+     * Pointed `RPC_URL` to Sepolia Alchemy endpoint (`https://eth-sepolia.g.alchemy.com/v2/alch_ufs43TVrKpgmCnvLwEITE`).
+     * Added automatic dynamic fallback to ensure transaction receipt verification on Sepolia succeeds.
+  3. **Frontend Configuration (`frontend/.env`):**
+     * Created production-ready `.env` targeting Sepolia Chain ID `11155111` and contract `0x885F3caB2121FC22C99a7e70a206b758619542B9`.
+* **Testing & Build Verification:**
+  * Frontend build: `vite build` completed in 21s with 0 errors.
+  * Smart Contract tests: 11/11 passing.
+  * On-chain contract verification: Passed.
+  * Git commit: `5ab2516`.
 
 3. **Deploy Backend (Render / Railway / Fly.io):**
    * Push repository to GitHub.
@@ -162,14 +173,16 @@ The application is completely repaired, tested, and ready. Before deploying to p
      * `MONGODB_URI`: Your MongoDB Atlas URI.
      * `JWT_SECRET`: Random 32+ character string.
      * `NODE_ENV`: `production`
-     * `RPC_URL`: Your Sepolia RPC URL.
+     * `RPC_URL`: `https://eth-sepolia.g.alchemy.com/v2/alch_ufs43TVrKpgmCnvLwEITE`
      * `PUBLIC_CLIENT_URL`: Your Vercel frontend URL (e.g. `https://agrichain.vercel.app`).
      * `ALLOWED_ORIGINS`: Your Vercel frontend URL.
 
 4. **Deploy Frontend (Vercel):**
    * Import repository into Vercel. Set Root Directory to `frontend`.
-   * Set Environment Variable:
-     * `VITE_API_BASE_URL`: `https://your-backend.onrender.com/api/v1`
-     * `VITE_TARGET_CHAIN_ID`: `11155111`
-     * `VITE_SEPOLIA_RPC_URL`: Your public Sepolia RPC URL.
+   * Set Environment Variables:
+     * `VITE_API_URL`: `https://your-backend.onrender.com/api/v1`
+     * `VITE_CONTRACT_ADDRESS`: `0x885F3caB2121FC22C99a7e70a206b758619542B9`
+     * `VITE_CHAIN_ID`: `11155111`
+     * `VITE_RPC_URL`: `https://eth-sepolia.g.alchemy.com/v2/alch_ufs43TVrKpgmCnvLwEITE`
    * Deploy!
+
