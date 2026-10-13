@@ -198,6 +198,27 @@ export const FarmerDashboard = () => {
 
       transactionSubmitted = true;
 
+      // Robust gas estimation with safety margin
+      // createBatch on-chain uses ~534k gas for struct creation and storage logs.
+      let txOptions = {};
+      try {
+        const estimatedGas = await contract.createBatch.estimateGas(
+          productName,
+          originLocation,
+          BigInt(quantity),
+          unit,
+          gradeMap[qualityGrade] ?? 0,
+          BigInt(priceInPaise),
+          `db://${dbBatchId}`
+        );
+        // Add 25% safety buffer
+        const calculatedLimit = (estimatedGas * 125n) / 100n;
+        txOptions = { gasLimit: calculatedLimit < 800000n ? calculatedLimit : 800000n };
+      } catch (estErr) {
+        console.warn('Pre-flight gas estimation warning; applying fallback gas limit:', estErr.message);
+        txOptions = { gasLimit: 700000n };
+      }
+
       const tx = await contract.createBatch(
         productName,
         originLocation,
@@ -205,7 +226,8 @@ export const FarmerDashboard = () => {
         unit,
         gradeMap[qualityGrade] ?? 0,
         BigInt(priceInPaise),
-        `db://${dbBatchId}`
+        `db://${dbBatchId}`,
+        txOptions
       );
 
       setTxStep('Step 2/3: Mining transaction on blockchain...');
@@ -323,11 +345,19 @@ export const FarmerDashboard = () => {
         }
       }
 
-      setError(
-        userRejected
-          ? 'MetaMask transaction was cancelled. The unconfirmed draft was removed.'
-          : err.message || 'Failed to create produce batch'
-      );
+      const isDelegationIssue =
+        err?.message?.includes('redeemDelegations') ||
+        err?.info?.error?.message?.includes('redeemDelegations') ||
+        err?.cause?.message?.includes('redeemDelegations');
+
+      let errorMsg = err.message || 'Failed to create produce batch';
+      if (userRejected) {
+        errorMsg = 'MetaMask transaction was cancelled. The unconfirmed draft was removed. (Tip: If MetaMask prompted "redeemDelegations" or high fees, disable "Smart Transactions" in MetaMask Settings > Advanced/Transactions).';
+      } else if (isDelegationIssue) {
+        errorMsg = 'MetaMask Smart Transactions / Delegation detected. Please disable "Smart Transactions" in MetaMask Settings > Advanced / Transactions to sign standard AgriChain createBatch transactions.';
+      }
+
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
       setTxStep(null);

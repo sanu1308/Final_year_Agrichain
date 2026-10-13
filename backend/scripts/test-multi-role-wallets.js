@@ -17,7 +17,7 @@ if (process.env.MONGODB_URI) {
   await mongoose.connect(process.env.MONGODB_URI);
 }
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'http://127.0.0.1:8545');
+const provider = new ethers.JsonRpcProvider(process.env.TEST_RPC_URL || 'http://127.0.0.1:8545');
 
 // 6 Distinct Hardhat Accounts
 // Account #0: Farmer A

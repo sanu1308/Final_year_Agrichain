@@ -282,14 +282,16 @@ export const RetailerDashboard = () => {
           expectedPriceCents,
           3,
           storeLocation,
-          purchaseNotes
+          purchaseNotes,
+          { gasLimit: 500000n }
         )
         : await contract.acceptPurchase(
           BigInt(purchaseModalBatch.blockchainBatchId),
           expectedPriceCents,
           3,
           storeLocation,
-          purchaseNotes
+          purchaseNotes,
+          { gasLimit: 350000n }
         );
 
       setTxStep('Step 1/2: Mining on-chain acceptance transaction...');
@@ -390,7 +392,8 @@ export const RetailerDashboard = () => {
       const tx = await contract.updateSellingPrice(
         BigInt(selectedBatch.blockchainBatchId),
         BigInt(priceInCents),
-        notes
+        notes,
+        { gasLimit: 250000n }
       );
 
       setTxStep('Step 1/2: Mining price update on blockchain...');

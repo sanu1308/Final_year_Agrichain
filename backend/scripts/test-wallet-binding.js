@@ -18,7 +18,7 @@ if (process.env.MONGODB_URI) {
 }
 
 // Hardhat Provider and Signers
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'http://127.0.0.1:8545');
+const provider = new ethers.JsonRpcProvider(process.env.TEST_RPC_URL || 'http://127.0.0.1:8545');
 
 // Distinct Hardhat accounts for testing
 // Signer 0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (Farmer A)

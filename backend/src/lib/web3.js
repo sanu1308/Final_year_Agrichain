@@ -18,7 +18,14 @@ try {
   console.warn('contractData.json not yet available, will initialize provider without contract instance');
 }
 
-export const provider = new ethers.JsonRpcProvider(config.rpcUrl);
+const defaultSepoliaRpc = 'https://eth-sepolia.g.alchemy.com/v2/alch_ufs43TVrKpgmCnvLwEITE';
+const effectiveRpcUrl =
+  contractData.chainId === 11155111 &&
+  (!config.rpcUrl || config.rpcUrl.includes('127.0.0.1') || config.rpcUrl.includes('localhost'))
+    ? defaultSepoliaRpc
+    : (config.rpcUrl || 'http://127.0.0.1:8545');
+
+export const provider = new ethers.JsonRpcProvider(effectiveRpcUrl);
 
 export function getContractInstance() {
   try {
